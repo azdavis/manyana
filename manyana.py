@@ -287,7 +287,7 @@ def test_initial():
     assert state1 == state2
     assert current_lines(state1) == ['line 1', 'line 4', 'line 2', 'line 3']
 
-def swap_left_right(s: str):
+def swap_left_right(s: str) -> str:
     s = s.replace('left', 'swap')
     s = s.replace('right', 'left')
     s = s.replace('swap', 'right')
