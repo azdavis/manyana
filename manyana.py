@@ -25,7 +25,23 @@ class StateItem:
 
 State: TypeAlias = list[StateItem]
 
-OutputItem: TypeAlias = tuple[Optional[str], int, bool, int, int, int]
+@dataclass(frozen=True)
+class OutputItem:
+    """
+    0: line
+    1: depth
+    2: anchored_right
+    3: count
+    4: on_left
+    5: on_right
+    """
+    line: Optional[str]
+    depth: int
+    anchored_right: bool
+    count: int
+    on_left: int
+    on_right: int
+
 Output: TypeAlias = list[OutputItem]
 
 Tree: TypeAlias = tuple[Optional[str], int, list["Tree"], list["Tree"], int]
@@ -97,38 +113,37 @@ def merge_states(state1: str, state2: str) -> tuple[str, list[str]]:
     result_lines: list[tuple[str, Conflict]] = []
     begin = 0
     for i in range(len(status_lines)+1):
-        if i == len(status_lines) or (status_lines[i][4] and
-                status_lines[i][5] and _unwrap(status_lines[i][0]).strip()):
+        if i == len(status_lines) or (status_lines[i].on_left and
+                status_lines[i].on_right and _unwrap(status_lines[i].line).strip()):
             found_add = False
             hit_left = False
             hit_right = False
             for j in range(begin, i):
-                line, _, _, in_child, on_left, on_right = status_lines[j]
-                if on_left != on_right:
-                    if in_child == on_left:
+                status_line = status_lines[j]
+                if status_line.on_left != status_line.on_right:
+                    if status_line.count == status_line.on_left:
                         hit_left = True
                     else:
                         hit_right = True
-                if in_child and on_left != on_right:
+                if status_line.count and status_line.on_left != status_line.on_right:
                     found_add = True
             if hit_left and hit_right and found_add:
                 for j in range(begin, i):
-                    line, _, _, in_child, on_left, on_right = status_lines[j]
-                    if on_left or on_right:
-                        result_lines.append((_unwrap(line), conflict_code(in_child, on_left, on_right)))
+                    status_line = status_lines[j]
+                    if status_line.on_left or status_line.on_right:
+                        result_lines.append((_unwrap(status_line.line), conflict_code(status_line.count, status_line.on_left, status_line.on_right)))
             else:
                 for j in range(begin, i):
-                    line, _, _, in_child, on_left, on_right = status_lines[j]
-                    if in_child:
-                        result_lines.append((_unwrap(line), Conflict.PEACE))
+                    status_line = status_lines[j]
+                    if status_line.count:
+                        result_lines.append((_unwrap(status_line.line), Conflict.PEACE))
             if i < len(status_lines):
-                result_lines.append((_unwrap(status_lines[i][0]), Conflict.PEACE))
+                result_lines.append((_unwrap(status_lines[i].line), Conflict.PEACE))
             begin = i + 1
     return (serialize_state([_output_item_to_state_item(x) for x in status_lines]), show_conflicts(result_lines))
 
 def _output_item_to_state_item(x: OutputItem) -> StateItem:
-    line, depth, anchored_right, count, _, _ = x
-    return StateItem(_unwrap(line), depth, anchored_right, count)
+    return StateItem(_unwrap(x.line), x.depth, x.anchored_right, x.count)
 
 # returns ([deleted_line_number], [(insert_position, [inserted_line])])
 def get_deletions_and_insertions(lines1: list[str], lines2: list[str]) -> tuple[list[int], list[tuple[int, list[str]]]]:
@@ -250,7 +265,7 @@ def merge_trees(output: Output, tree1: Tree, tree2: Tree, anchored_right: bool):
     assert depth1 == depth2
     merge_tree_lists(output, lowtrees1, lowtrees2, True)
     if line1 is not None:
-        output.append((line1, depth1, anchored_right, max(count1, count2) % 2, count1 % 2, count2 % 2))
+        output.append(OutputItem(line1, depth1, anchored_right, max(count1, count2) % 2, count1 % 2, count2 % 2))
     merge_tree_lists(output, hightrees1, hightrees2, False)
 
 def merge_tree_lists(output: Output, left_trees: list[Tree], right_trees: list[Tree], anchored_right: bool):
@@ -278,7 +293,7 @@ def insert_tree(output: Output, tree: Tree, from_right: bool, anchored_right: bo
     line, count, lowtrees, hightrees, depth = tree
     for new_tree in lowtrees:
         insert_tree(output, new_tree, from_right, True)
-    output.append((line, depth, anchored_right, count % 2, not from_right, from_right))
+    output.append(OutputItem(line, depth, anchored_right, count % 2, not from_right, from_right))
     for new_tree in hightrees:
         insert_tree(output, new_tree, from_right, False)
 
