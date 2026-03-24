@@ -26,35 +26,36 @@ class Tests(unittest.TestCase):
     def check_merges(self, thing1: str, thing2: str, expected_result: list[str], expected_conflicts: Optional[list[str]] = None):
         state1, conflicts1 = merge_states(thing1, thing2)
         state2, conflicts2 = merge_states(thing2, thing1)
-        assert state1 == state2
+        self.assertEqual(state1, state2)
         if expected_conflicts is None:
-            assert conflicts1 == conflicts2 == expected_result
+            self.assertEqual(conflicts1, conflicts2)
+            self.assertEqual(conflicts1, expected_result)
         else:
-            assert conflicts1 == expected_conflicts
-            assert conflicts2 == [swap_left_right(x) for x in expected_conflicts]
-        assert current_lines(state1) == expected_result
+            self.assertEqual(conflicts1, expected_conflicts)
+            self.assertEqual(conflicts2, [swap_left_right(x) for x in expected_conflicts])
+        self.assertEqual(current_lines(state1), expected_result)
 
     def check_insertions_below_single(self, a: str, b: str, c: str, d: str):
         state1, _ = merge_states(a, b)
         state2, _ = merge_states(c, d)
         state3, _ = merge_states(state1, state2)
-        assert current_lines(state3) == ['A', 'B', 'C', 'D', 'X']
+        self.assertEqual(current_lines(state3), ['A', 'B', 'C', 'D', 'X'])
 
     def check_insertions_single(self, a: str, b: str, c: str, d: str):
         state1, _ = merge_states(a, b)
         state2, _ = merge_states(c, d)
         state3, _ = merge_states(state1, state2)
-        assert current_lines(state3) == ['A', 'B', 'C', 'D']
+        self.assertEqual(current_lines(state3), ['A', 'B', 'C', 'D'])
 
     def test_initial(self):
-        assert initial_state([]) == ''
-        assert current_lines('') == []
+        self.assertEqual(initial_state([]), '')
+        self.assertEqual(current_lines(''), [])
         v1 = initial_state(['line 1', 'line 4'])
         v2 = initial_state(['line 2', 'line 3'])
         state1, _ = merge_states(v1, v2)
         state2, _ = merge_states(v2, v1)
-        assert state1 == state2
-        assert current_lines(state1) == ['line 1', 'line 4', 'line 2', 'line 3']
+        self.assertEqual(state1, state2)
+        self.assertEqual(current_lines(state1), ['line 1', 'line 4', 'line 2', 'line 3'])
 
     def test_bottom_and_top(self):
         initial = initial_state(['A'])
@@ -217,7 +218,7 @@ class Tests(unittest.TestCase):
     def test_update_insert_multiple(self):
         initial = initial_state(['A', 'B'])
         updated = update_state(initial, ['A', 'X', 'Y', 'B'])
-        assert current_lines(updated) == ['A', 'X', 'Y', 'B']
+        self.assertEqual(current_lines(updated), ['A', 'X', 'Y', 'B'])
 
     def test_insert_low_tree(self):
         initial = initial_state(['A'])
